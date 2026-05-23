@@ -3,11 +3,20 @@ from typing import Optional
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column
 from sqlalchemy import Enum as SqlEnum
+from sqlalchemy import String
+from pydantic import BaseModel
 
+# editar datos de usuario (sin cambiar supabase_uid ni rol)
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    telefono: Optional[str] = None
+    # No incluimos 'supabase_uid' porque ese no debe cambiarse nunca
+    
 # DEFINICIÓN DE ROLES
 class RolUsuario(str, Enum):
     PACIENTE = "paciente"    
-    ADMIN = "administrador"
+    ADMIN = "admin"
 
 # ESQUEMA BASE PARA USUARIOS (lo que comparten los 3 esquemas)
 class UsuarioBase(SQLModel):
@@ -32,10 +41,10 @@ class Usuario(UsuarioBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     
-    # Sobrescribimos 'rol' en la tabla para forzar el Enum nativo en la BD
+    # Le decimos a SQLAlchemy que trate la columna como texto común (VARCHAR)
     rol: RolUsuario = Field(
         sa_column=Column(
-            SqlEnum(RolUsuario, name="rolusuario_enum"), 
+            String, 
             nullable=False, 
             default=RolUsuario.PACIENTE.value
         )

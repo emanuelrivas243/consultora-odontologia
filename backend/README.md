@@ -28,11 +28,11 @@ python -m venv .venv
 
 **Paso 2 — Activar el entorno virtual:**
 
-| Sistema operativo | Comando |
-|---|---|
-| Windows (Git Bash) | `source .venv/Scripts/activate` |
-| Windows (PowerShell) | `.\.venv\Scripts\Activate.ps1` |
-| Mac / Linux | `source .venv/bin/activate` |
+| Sistema operativo    | Comando                         |
+| -------------------- | ------------------------------- |
+| Windows (Git Bash)   | `source .venv/Scripts/activate` |
+| Windows (PowerShell) | `.\.venv\Scripts\Activate.ps1`  |
+| Mac / Linux          | `source .venv/bin/activate`     |
 
 **Paso 3 — Instalar las dependencias:**
 
@@ -62,12 +62,17 @@ uvicorn backend.app.main:app --reload
 
 ---
 
+o desde la carpeta del backend
+
+```bash
+uvicorn app.main:app --reload
+```
+
 ## 📑 Documentación de la API
 
 Una vez que el servidor esté corriendo, accede a la documentación interactiva en:
 
-| Interfaz | URL |
-|---|---|
-| Swagger UI | http://127.0.0.1:8000/docs |
-| Redoc | http://127.0.0.1:8000/redoc |
-
+| Interfaz   | URL                         |
+| ---------- | --------------------------- |
+| Swagger UI | http://127.0.0.1:8000/docs  |
+| Redoc      | http://127.0.0.1:8000/redoc |
