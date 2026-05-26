@@ -14,9 +14,12 @@ router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 async def crear_usuario(
     usuario: UsuarioCreate,
     session: AsyncSession = Depends(get_session),
-    admin: dict = Depends(require_admin)
+    token_data: dict = Depends(get_current_user)
+    #admin: dict = Depends(require_admin)
 ):  
     nuevo_usuario = Usuario(**usuario.model_dump())
+
+    nuevo_usuario.supabase_uid = token_data.get("sub")
 
     session.add(nuevo_usuario)
     await session.commit()

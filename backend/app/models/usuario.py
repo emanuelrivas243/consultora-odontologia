@@ -6,6 +6,7 @@ from sqlalchemy import Enum as SqlEnum
 from sqlalchemy import String
 from pydantic import BaseModel
 
+
 # editar datos de usuario (sin cambiar supabase_uid ni rol)
 class UsuarioUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -26,9 +27,15 @@ class UsuarioBase(SQLModel):
     apellido: str = Field(nullable=False, max_length=50)
     rol: RolUsuario = RolUsuario.PACIENTE
 
-# ESQUEMA PARA CREAR (Lo que envía el Frontend al registrarse)
+# ESQUEMA PARA CREAR (Lo que se envía en el JSON de Swagger)
 class UsuarioCreate(UsuarioBase):
-    supabase_uid: str = Field(nullable=False)  # Obligatorio al crearlo desde el registro de Supabase
+    pass  # <-- ¡Listo! Ya no pedirá el 'supabase_uid' en el cuerpo del JSON
+
+
+# ESQUEMA PARA CREAR (Lo que envía el Frontend al registrarse)
+# este sí se usa en producción, por ahora el de arriba queda para pruebas
+#class UsuarioCreate(UsuarioBase):
+#    supabase_uid: str = Field(nullable=False)  # Obligatorio al crearlo desde el registro de Supabase
 
 # ESQUEMA PARA LEER (Lo que la API devuelve de forma segura)
 class UsuarioRead(UsuarioBase):
