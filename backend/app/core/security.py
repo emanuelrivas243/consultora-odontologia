@@ -3,7 +3,10 @@ import requests
 from jose import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.models.usuario import RolUsuario
+from app.models.usuario import RolUsuario, Usuario
+from app.database import get_session
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -78,19 +81,31 @@ def get_current_user(
 
 
 # EXTRAER USUARIO + ROL
-def get_current_user_with_role(
-    payload: dict = Depends(get_current_user)
+async def get_current_user_with_role(
+    payload: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
 ):
     try:
-        # IMPORTANTE: usar app_metadata (estándar Supabase)
-        role = payload.get("app_metadata", {}).get("role")
+        # Obtener supabase_uid del JWT
+        supabase_uid = payload.get("sub")
 
-        if not role:
-            raise HTTPException(status_code=403, detail="Rol no encontrado")
+        if not supabase_uid:
+            raise HTTPException(status_code=403, detail="Usuario no identificado")
 
+        # Consultar el rol real en la base de datos
+        result = await session.exec(
+            select(Usuario).where(Usuario.supabase_uid == supabase_uid)
+        )
+        usuario = result.first()
+
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado en base de datos")
+
+        # Usar el rol de la base de datos
         return {
             "user": payload,
-            "role": RolUsuario(role)
+            "role": usuario.rol,
+            "usuario_db": usuario
         }
 
     except ValueError:
@@ -98,7 +113,7 @@ def get_current_user_with_role(
 
 
 # SOLO ADMIN
-def require_admin(
+async def require_admin(
     user_data: dict = Depends(get_current_user_with_role)
 ):
     if user_data["role"] != RolUsuario.ADMIN:
@@ -108,7 +123,7 @@ def require_admin(
 
 
 # SOLO PACIENTE
-def require_paciente(
+async def require_paciente(
     user_data: dict = Depends(get_current_user_with_role)
 ):
     if user_data["role"] != RolUsuario.PACIENTE:

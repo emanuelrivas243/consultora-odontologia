@@ -33,14 +33,6 @@ app.include_router(usuarios_router)
 app.include_router(auth_router)
 app.include_router(citas_router)
 
-# ENDPOINT: Para probar el token y ver tu información + rol
-@app.get("/usuario/me")
-async def obtener_mi_perfil(current_user: dict = Depends(get_current_user_with_role)):
-    """
-    Retorna el payload del token decodificado de Supabase y el rol mapeado.
-    """
-    return current_user
-
 # ENDPOINT: Solo los Administradores deberían listar todos los pacientes
 @app.get("/pacientes")
 async def listar_pacientes(session: AsyncSession = Depends(get_session), admin_user: dict = Depends(require_admin)):

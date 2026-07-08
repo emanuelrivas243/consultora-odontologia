@@ -4,9 +4,9 @@ from sqlmodel import select
 from typing import List
 
 from app.database import get_session
-from app.models.cita import Cita, CitaCreate, CitaRead
+from app.models.cita import Cita, CitaCreate, CitaRead, CitaUpdate
 from app.models.usuario import Usuario
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin
 
 router = APIRouter(prefix="/citas", tags=["Citas"])
 
@@ -43,6 +43,24 @@ async def obtener_mis_citas(
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 
+@router.get("/", response_model=List[CitaRead])
+async def obtener_todas_citas(
+    session: AsyncSession = Depends(get_session),
+    admin: dict = Depends(require_admin)
+):
+    """
+    Obtiene todas las citas del sistema (solo administradores)
+    """
+    try:
+        result = await session.exec(select(Cita))
+        citas = result.all()
+        return citas
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+
+
 @router.post("/", response_model=CitaRead)
 async def crear_cita(
     cita_data: CitaCreate,
@@ -66,10 +84,11 @@ async def crear_cita(
         nueva_cita = Cita(
             fecha=cita_data.fecha,
             hora=cita_data.hora,
-            tratamiento=cita_data.tratamiento,
+            procedimiento=cita_data.procedimiento,
             estado=cita_data.estado,
-            notas=cita_data.notas,
-            usuario_id=usuario.id
+            #notas=cita_data.notas,
+            odontologo=cita_data.odontologo,
+            usuario_id=cita_data.usuario_id
         )
 
         session.add(nueva_cita)
@@ -83,3 +102,65 @@ async def crear_cita(
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+
+@router.patch("/{cita_id}", response_model=CitaRead)
+async def actualizar_cita(
+    cita_id: int,
+    cita_update: CitaUpdate,
+    session: AsyncSession = Depends(get_session),
+    admin: dict = Depends(require_admin) # Solo admin puede cambiar estados
+):
+    """
+    Actualiza el estado de una cita existente
+    """
+    db_cita = await session.get(Cita, cita_id)
+    if not db_cita:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    
+    # Actualizar solo los campos enviados
+    cita_data = cita_update.dict(exclude_unset=True)
+    for key, value in cita_data.items():
+        setattr(db_cita, key, value)
+    
+    session.add(db_cita)
+    await session.commit()
+    await session.refresh(db_cita)
+    return db_cita
+
+@router.delete("/{cita_id}")
+async def eliminar_cita(
+    cita_id: int,
+    session: AsyncSession = Depends(get_session),
+    admin: dict = Depends(require_admin) # Solo admin puede eliminar
+):
+    """
+    Elimina una cita del sistema
+    """
+    db_cita = await session.get(Cita, cita_id)
+    if not db_cita:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    
+    await session.delete(db_cita)
+    await session.commit()
+    return {"ok": True}
+
+@router.put("/{cita_id}", response_model=CitaRead)
+async def editar_cita_completa(
+    cita_id: int,
+    cita_data: CitaCreate, # Usamos CitaCreate para validar todos los campos
+    session: AsyncSession = Depends(get_session),
+    admin: dict = Depends(require_admin)
+):
+    db_cita = await session.get(Cita, cita_id)
+    if not db_cita:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    
+    # Actualizamos todos los campos
+    cita_dict = cita_data.dict()
+    for key, value in cita_dict.items():
+        setattr(db_cita, key, value)
+        
+    session.add(db_cita)
+    await session.commit()
+    await session.refresh(db_cita)
+    return db_cita

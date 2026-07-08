@@ -25,3 +25,6 @@ class Cita(CitaBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     usuario_id: Optional[int] = Field(default=None, nullable=True)
+    
+class CitaUpdate(SQLModel):
+    estado: Optional[str] = None
